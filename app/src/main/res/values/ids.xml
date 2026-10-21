@@ -1,0 +1,13 @@
+<resources>
+    <item name="addCustomerBtn" type="id" />
+    <item name="customerListBtn" type="id" />
+    <item name="logoutBtn" type="id" />
+    <item name="lastNameInput" type="id" />
+    <item name="firstNameInput" type="id" />
+    <item name="mobileInput" type="id" />
+    <item name="addressInput" type="id" />
+    <item name="saveCustomerBtn" type="id" />
+    <item name="backBtn" type="id" />
+    <item name="refreshBtn" type="id" />
+    <item name="loadMoreBtn" type="id" />
+</resources>

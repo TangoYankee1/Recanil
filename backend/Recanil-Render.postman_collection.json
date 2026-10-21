@@ -1,0 +1,117 @@
+{
+    "variable":  [
+                     {
+                         "key":  "base_url",
+                         "value":  "https://test-monkey-amh1.onrender.com"
+                     },
+                     {
+                         "key":  "token",
+                         "value":  ""
+                     }
+                 ],
+    "info":  {
+                 "name":  "Recanil Render API",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "item":  [
+                 {
+                     "name":  "Signup",
+                     "request":  {
+                                     "body":  {
+                                                  "raw":  "{\r\n    \"username\":  \"Student\",\r\n    \"email\":  \"student@example.com\",\r\n    \"password\":  \"Correct123!\"\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              },
+                                                  "mode":  "raw"
+                                              },
+                                     "method":  "POST",
+                                     "url":  "{{base_url}}/signup",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    }
+                                                ]
+                                 }
+                 },
+                 {
+                     "request":  {
+                                     "body":  {
+                                                  "raw":  "{\r\n    \"password\":  \"Correct123!\",\r\n    \"email\":  \"student@example.com\"\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              },
+                                                  "mode":  "raw"
+                                              },
+                                     "method":  "POST",
+                                     "url":  "{{base_url}}/login",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "Login",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Login succeeds\", () =\u003e pm.response.to.have.status(200));",
+                                                                   "if (pm.response.code === 200) { const body = pm.response.json(); if (body.token) pm.collectionVariables.set(\"token\", body.token); } else { pm.collectionVariables.unset(\"token\"); }"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 },
+                 {
+                     "name":  "Add Customer",
+                     "request":  {
+                                     "body":  {
+                                                  "raw":  "{\r\n    \"mobileno\":  \"09171234567\",\r\n    \"firstname\":  \"Juan\",\r\n    \"address\":  \"Manila\",\r\n    \"lastname\":  \"Dela Cruz\"\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              },
+                                                  "mode":  "raw"
+                                              },
+                                     "method":  "POST",
+                                     "url":  "{{base_url}}/customers",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    },
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{token}}"
+                                                    }
+                                                ]
+                                 }
+                 },
+                 {
+                     "name":  "Customer List",
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/customers?offset=0",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Content-Type",
+                                                        "value":  "application/json"
+                                                    },
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{token}}"
+                                                    }
+                                                ]
+                                 }
+                 }
+             ]
+}

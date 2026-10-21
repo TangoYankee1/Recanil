@@ -13,6 +13,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Recanil">
+        <activity android:name=".AddCustomerActivity" android:exported="false" />
+        <activity android:name=".CustomerListActivity" android:exported="false" />
         <activity
             android:name=".OtpActivity"
             android:exported="false" />

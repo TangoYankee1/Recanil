@@ -4,212 +4,82 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.example.recanil.api.ApiService;
+import com.example.recanil.api.ApiErrors;
 import com.example.recanil.api.RetrofitClient;
-import com.example.recanil.model.User;
-
-import java.util.List;
-
+import com.example.recanil.model.AuthResponse;
+import com.example.recanil.model.LoginRequest;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private EditText usernameInput;
-    private EditText passwordInput;
+    private EditText usernameInput, passwordInput;
     private Button loginBtn;
-    private TextView registerBtn;
+    private Call<AuthResponse> request;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
+    @Override protected void onCreate(Bundle state) {
+        super.onCreate(state);
         setContentView(R.layout.recanil);
-
-        // Find views
         usernameInput = findViewById(R.id.usernameInput);
+        usernameInput.setHint("Email");
+        usernameInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
         passwordInput = findViewById(R.id.passwordInput);
         loginBtn = findViewById(R.id.loginBtn);
-        registerBtn = findViewById(R.id.registerBtn);
-
-        // Register button
-        registerBtn.setOnClickListener(v -> {
-
-            Intent intent = new Intent(
-                    LoginActivity.this,
-                    SignupActivity.class
-            );
-
-            startActivity(intent);
-        });
-
-        // Login button
+        findViewById(R.id.registerBtn).setOnClickListener(v ->
+                startActivity(new Intent(this, SignupActivity.class)));
         loginBtn.setOnClickListener(v -> login());
     }
 
     private void login() {
-
-        String email = usernameInput
-                .getText()
-                .toString()
-                .trim();
-
-        String password = passwordInput
-                .getText()
-                .toString();
-
-        // Validate email
+        String email = usernameInput.getText().toString().trim();
+        String password = passwordInput.getText().toString();
         if (email.isEmpty()) {
-
             usernameInput.setError("Enter your email");
             usernameInput.requestFocus();
-
             return;
         }
-
-        // Validate password
         if (password.isEmpty()) {
-
             passwordInput.setError("Enter your password");
             passwordInput.requestFocus();
-
             return;
         }
-
-        // Disable button while connecting
         loginBtn.setEnabled(false);
         loginBtn.setText("Logging in...");
-
-        ApiService apiService =
-                RetrofitClient.getApiService();
-
-        apiService.getUsers().enqueue(
-                new Callback<List<User>>() {
-
-                    @Override
-                    public void onResponse(
-                            Call<List<User>> call,
-                            Response<List<User>> response) {
-
-                        // Enable button again
-                        loginBtn.setEnabled(true);
-                        loginBtn.setText("Login");
-
-                        // Server error
-                        if (!response.isSuccessful()) {
-
-                            Toast.makeText(
-                                    LoginActivity.this,
-                                    "Server error: "
-                                            + response.code(),
-                                    Toast.LENGTH_LONG
-                            ).show();
-
-                            return;
-                        }
-
-                        // Get users
-                        List<User> users = response.body();
-
-                        if (users == null || users.isEmpty()) {
-
-                            Toast.makeText(
-                                    LoginActivity.this,
-                                    "No users found",
-                                    Toast.LENGTH_LONG
-                            ).show();
-
-                            return;
-                        }
-
-                        // Check credentials
-                        boolean loginSuccessful = false;
-
-                        for (User user : users) {
-
-                            if (user.getEmail() != null
-                                    && user.getPassword() != null
-                                    && user.getEmail()
-                                    .equalsIgnoreCase(email)
-                                    && user.getPassword()
-                                    .equals(password)) {
-
-                                loginSuccessful = true;
-                                break;
-                            }
-                        }
-
-                        // Login successful
-                        if (loginSuccessful) {
-
-                            Toast.makeText(
-                                    LoginActivity.this,
-                                    "Login successful!",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-
-                            /*
-                             * Go to OTP verification.
-                             *
-                             * OtpActivity must be located at:
-                             *
-                             * app/src/main/java/
-                             * com/example/recanil/OtpActivity.java
-                             */
-                            Intent intent = new Intent(
-                                    LoginActivity.this,
-                                    OtpActivity.class
-                            );
-
-                            // Send email to OTP activity
-                            intent.putExtra(
-                                    "email",
-                                    email
-                            );
-
-                            startActivity(intent);
-
-                            finish();
-
-                        } else {
-
-                            // Invalid credentials
-                            Toast.makeText(
-                                    LoginActivity.this,
-                                    "Invalid email or password",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(
-                            Call<List<User>> call,
-                            Throwable t) {
-
-                        // Enable button again
-                        loginBtn.setEnabled(true);
-                        loginBtn.setText("Login");
-
-                        t.printStackTrace();
-
-                        Toast.makeText(
-                                LoginActivity.this,
-                                "Connection failed: "
-                                        + t.getClass()
-                                        .getSimpleName()
-                                        + "\n"
-                                        + t.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
+        request = RetrofitClient.getApiService().login(new LoginRequest(email, password));
+        request.enqueue(new Callback<AuthResponse>() {
+            @Override public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isDestroyed()) return;
+                restoreButton();
+                AuthResponse auth = response.body();
+                if (!response.isSuccessful()) {
+                    toast(ApiErrors.message(response));
+                } else if (auth == null || !auth.isSuccess()
+                        || auth.getToken() == null || auth.getToken().isEmpty()) {
+                    toast("Login response is missing a session. Please try again.");
+                } else {
+                    toast("Login successful!");
+                    Intent intent = new Intent(LoginActivity.this, OtpActivity.class);
+                    intent.putExtra("email", email);
+                    intent.putExtra("token", auth.getToken());
+                    startActivity(intent);
+                    finish();
                 }
-        );
+            }
+            @Override public void onFailure(Call<AuthResponse> call, Throwable error) {
+                if (call.isCanceled() || isDestroyed()) return;
+                restoreButton();
+                toast("Connection failed: please check your connection and try again.");
+            }
+        });
+    }
+
+    private void restoreButton() { loginBtn.setEnabled(true); loginBtn.setText("Login"); }
+    private void toast(String message) { Toast.makeText(this, message, Toast.LENGTH_LONG).show(); }
+    @Override protected void onDestroy() {
+        if (request != null) request.cancel();
+        super.onDestroy();
     }
 }

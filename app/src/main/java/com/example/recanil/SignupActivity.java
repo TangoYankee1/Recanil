@@ -5,6 +5,15 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.util.Patterns;
+import com.example.recanil.api.ApiErrors;
+import com.example.recanil.api.RetrofitClient;
+import com.example.recanil.model.AuthResponse;
+import com.example.recanil.model.SignupRequest;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,6 +25,7 @@ public class SignupActivity extends AppCompatActivity {
     private EditText confirmPasswordInput;
     private Button signupBtn;
     private TextView loginBtn;
+    private Call<AuthResponse> request;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +124,40 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        // Render API signup will be added here.
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailInput.setError("Enter a valid email");
+            return;
+        }
+        signupBtn.setEnabled(false);
+        signupBtn.setText("Creating account...");
+        request = RetrofitClient.getApiService().signup(new SignupRequest(username, email, password));
+        request.enqueue(new Callback<AuthResponse>() {
+            @Override public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isDestroyed()) return;
+                restoreButton();
+                AuthResponse result = response.body();
+                if (response.isSuccessful() && result != null && result.isSuccess()) {
+                    Toast.makeText(SignupActivity.this, result.getMessage(), Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(SignupActivity.this, LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(SignupActivity.this, response.isSuccessful()
+                            ? "Unable to create account. Please try again."
+                            : ApiErrors.message(response), Toast.LENGTH_LONG).show();
+                }
+            }
+            @Override public void onFailure(Call<AuthResponse> call, Throwable error) {
+                if (call.isCanceled() || isDestroyed()) return;
+                restoreButton();
+                Toast.makeText(SignupActivity.this, "Connection failed. Please try again.", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+    private void restoreButton() { signupBtn.setEnabled(true); signupBtn.setText("CREATE ACCOUNT"); }
+    @Override protected void onDestroy() {
+        if (request != null) request.cancel();
+        super.onDestroy();
     }
 }

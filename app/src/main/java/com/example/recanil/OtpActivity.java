@@ -3,6 +3,7 @@ package com.example.recanil;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.SystemClock;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -11,7 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Locale;
-import java.util.Random;
+import java.security.SecureRandom;
 
 public class OtpActivity extends AppCompatActivity {
 
@@ -21,6 +22,7 @@ public class OtpActivity extends AppCompatActivity {
     private TextView otpDisplay;
 
     private String generatedOtp;
+    private long expiresAt;
     private CountDownTimer countDownTimer;
 
     private static final long OTP_DURATION = 30_000L;
@@ -31,6 +33,10 @@ public class OtpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_otp);
+        if (getIntent().getStringExtra("token") == null) {
+            returnToLogin();
+            return;
+        }
 
         // Connect Java to XML
         otpInput = findViewById(R.id.otpInput);
@@ -39,7 +45,10 @@ public class OtpActivity extends AppCompatActivity {
         otpDisplay = findViewById(R.id.otpDisplay);
 
         // Generate OTP
-        generatedOtp = generateOtp();
+        generatedOtp = savedInstanceState == null ? generateOtp()
+                : savedInstanceState.getString("otp");
+        expiresAt = savedInstanceState == null ? SystemClock.elapsedRealtime() + OTP_DURATION
+                : savedInstanceState.getLong("expiresAt");
 
         // Display OTP for testing
         otpDisplay.setText("Your OTP: " + generatedOtp);
@@ -49,6 +58,7 @@ public class OtpActivity extends AppCompatActivity {
 
         // Verify button
         verifyOtpBtn.setOnClickListener(v -> verifyOtp());
+        findViewById(R.id.loginAgainBtn).setOnClickListener(v -> returnToLogin());
     }
 
     /**
@@ -56,7 +66,7 @@ public class OtpActivity extends AppCompatActivity {
      */
     private String generateOtp() {
 
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
 
         int otp = 100000 + random.nextInt(900000);
 
@@ -76,7 +86,7 @@ public class OtpActivity extends AppCompatActivity {
         otpInput.setEnabled(true);
 
         countDownTimer = new CountDownTimer(
-                OTP_DURATION,
+                Math.max(0, expiresAt - SystemClock.elapsedRealtime()),
                 TIMER_INTERVAL
         ) {
 
@@ -115,6 +125,11 @@ public class OtpActivity extends AppCompatActivity {
      * Verify the OTP entered by the user.
      */
     private void verifyOtp() {
+        if (SystemClock.elapsedRealtime() >= expiresAt) {
+            otpInput.setError("OTP expired. Please login again.");
+            verifyOtpBtn.setEnabled(false);
+            return;
+        }
 
         String enteredOtp =
                 otpInput.getText()
@@ -159,6 +174,8 @@ public class OtpActivity extends AppCompatActivity {
                     OtpActivity.this,
                     MainActivity.class
             );
+            intent.putExtra("token", getIntent().getStringExtra("token"));
+            intent.putExtra("email", getIntent().getStringExtra("email"));
 
             startActivity(intent);
 
@@ -176,6 +193,18 @@ public class OtpActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT
             ).show();
         }
+    }
+
+    private void returnToLogin() {
+        startActivity(new Intent(this, LoginActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+        finish();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("otp", generatedOtp);
+        state.putLong("expiresAt", expiresAt);
+        super.onSaveInstanceState(state);
     }
 
     @Override

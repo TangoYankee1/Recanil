@@ -1,63 +1,54 @@
-# Login test flow
+# Signup, OTP, dashboard, and customer verification
 
-The launcher is `LoginActivity`. It reads `GET https://test-monkey-amh1.onrender.com/users`
-and expects a JSON array with `Email` and `Password` fields. Matching credentials open
-`OtpActivity`; this is the end of the credential login flow, before OTP verification.
+The app now uses the Render routes documented in `../backend/README.md`.
+Deploy the replacement backend and configure Supabase before a live test.
+The old GET /users password download has been removed.
 
-## Automated tests
-
-Run from the project root with JDK 17 or newer configured:
+Automated Android tests use Robolectric and MockWebServer:
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest --tests com.example.recanil.LoginFlowTest
+.\gradlew.bat :app:testDebugUnitTest
 ```
 
-The tests use Robolectric and a local MockWebServer, so no emulator, real account,
-or live API is required. Test credentials are synthetic:
-`tester@example.com` / `Correct123!`.
-The HTML report is `app/build/reports/tests/testDebugUnitTest/index.html`.
+Run the backend contract tests separately:
 
-## Manual flows
+```powershell
+cd backend
+npm ci
+npm test
+```
 
-Install and open the app. Use an existing test account from the new API for the
-successful case; the synthetic automated-test account is not assumed to exist there.
-Start each case on the login screen. Enter the email in the field currently labeled
-**Username**, enter the password, then tap **Login**.
+Manual device verification:
 
-| Case | Input / setup | Expected result |
-| --- | --- | --- |
-| Valid login | Existing email and exact password | Button briefly shows `Logging in...`; `Login successful!`; OTP screen opens; login screen finishes. |
-| Email normalization | Existing email with different casing and surrounding spaces | Same successful result; trimmed email is passed to OTP. |
-| Wrong password | Existing email with wrong password | `Invalid email or password`; stays on login; button enabled for retry. |
-| Unknown email | Unregistered email | Same invalid-credentials result. |
-| Password case / spaces | Change password casing or add spaces | Rejected unless those characters are part of the actual password. |
-| Empty email | Empty or whitespace-only email | `Enter your email` field error; no API request. |
-| Empty password | Existing email, empty password | `Enter your password` field error; no API request. |
-| Both empty | Leave both fields blank | Email error appears first; after entering email, password error appears. |
-| Empty API result | API returns `[]` | `No users found`; stays on login; retry enabled. |
-| Missing user fields | API rows omit email or password | Rows cannot authenticate; no crash. |
-| Server error | API returns HTTP 500 | `Server error: 500`; stays on login; retry enabled. |
-| Offline / invalid JSON | Disconnect network or mock an invalid response | `Connection failed: ...`; stays on login; retry enabled. |
-| Retry | Fail once, then enter valid credentials | Error does not prevent a later successful login. |
+1. Sign up using a unique email, username, and password of at least six characters.
+   Confirm the account appears in Supabase Authentication > Users. If email
+   confirmation is enabled, confirm the email before login; disable it for the
+   immediate-login school demonstration.
+2. Log in. Invalid credentials stay on login; valid credentials open OTP.
+3. Enter the displayed six-digit OTP within 30 seconds. Incorrect codes are
+   rejected; expired codes cannot be submitted. Rotate the screen and verify the
+   same OTP and original deadline are preserved. Back to Login allows a new login.
+4. Successful OTP opens Dashboard with Add Customer, Customer List, and Log Out.
+5. Attempt to save an empty customer: required fields should show errors.
+6. Save all four fields, including a phone number starting with 0. The generated
+   customer ID and phone number should appear in Customer List and Supabase.
+7. With more than 50 customers, Load More should retrieve the next page.
+8. Turn off networking and check retry messages on login, signup, add, and list.
+   For an ambiguous failed save, check the list before retrying to avoid duplicates.
+9. Log out and confirm Back does not reopen the dashboard.
+10. An expired user token must return customer screens to login.
 
-For API error cases, use a controlled mock server rather than changing the shared
-Render service. The automated suite covers these response cases locally.
+The displayed OTP remains a client-side demo. Accounts are managed by Supabase
+Auth; customers are shared between signed-in users. No Supabase secret key is
+included in the Android application. The sample hardcoded accounts from the old
+backend are not imported.
 
-## OTP continuation (manual)
+The reference video is contextual material; automated tests exercise the source
+code and mock HTTP responses, not video playback or the live deployed service.
 
-After valid credentials, enter the six-digit OTP displayed on screen within 30 seconds.
-The app shows `OTP verified successfully!` and opens `MainActivity`. A wrong OTP shows
-`Incorrect OTP`; empty and short entries show field errors. After expiry, inputs are
-disabled and `OTP expired` appears. Currently `MainActivity` displays another login
-form; these tests do not imply a dashboard or a completed backend authentication session.
-
-## Reference and verification limits
-
-The supplied MP4 is a reference, not a source of executable instructions. Video
-playback/extraction was unavailable in the editing environment, so this flow is
-based on the current app code. The new live endpoint's response schema must be
-verified on a network-enabled device; automated tests use the existing app schema.
-
-Validation in this workspace: app and test Java compilation succeeded, and
-`git diff --check` passed. The first test execution did not finish during verification
-and was stopped without results. Re-run the command above to obtain pass/fail results.
+Verified in this workspace on October 22, 2026: `:app:assembleDebug` succeeded,
+all 12 Android unit tests passed, all 8 backend tests passed, and `git diff --check`
+passed. The APK is `app/build/outputs/apk/debug/app-debug.apk`.
+Live Render/Supabase integration and physical-device UI checks remain pending
+deployment and environment configuration; no real accounts or customers were
+created by the automated tests.
