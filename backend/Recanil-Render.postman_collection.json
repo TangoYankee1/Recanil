@@ -2,7 +2,7 @@
     "variable":  [
                      {
                          "key":  "base_url",
-                         "value":  "https://test-monkey-amh1.onrender.com"
+                         "value":  "https://test-monkey-1.onrender.com"
                      },
                      {
                          "key":  "token",

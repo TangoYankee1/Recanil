@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 public class RetrofitClient {
 
     private static final String BASE_URL =
-            "https://test-monkey-amh1.onrender.com/";
+            "https://test-monkey-1.onrender.com/";
 
     private static Retrofit retrofit;
 

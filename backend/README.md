@@ -2,7 +2,7 @@
 
 This folder contains replacement source for the separate
 [Test-monkey backend](https://github.com/TangoYankee1/Test-monkey).
-The Android app continues to use `https://test-monkey-amh1.onrender.com/`.
+The Android app uses `https://test-monkey-1.onrender.com/`.
 These local files have not been pushed to that repository or deployed.
 
 ## 1. Prepare Supabase
